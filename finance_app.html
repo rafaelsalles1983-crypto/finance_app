@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Controle Financeiro — App Simples</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#9ca3af;--glass: rgba(255,255,255,0.03)}
+    *{box-sizing:border-box;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+    body{margin:0;background:linear-gradient(180deg,#071028 0%, #071423 100%);color:#e6eef6;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .wrap{width:100%;max-width:1000px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 20px rgba(2,6,23,0.6)}
+    .auth{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+    label{font-size:13px;color:var(--muted)}
+    input,select,button{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:var(--glass);color:inherit}
+    .muted{color:var(--muted);font-size:13px}
+    .actions{display:flex;gap:8px}
+    .btn{cursor:pointer;border:none}
+    .btn-primary{background:linear-gradient(90deg,var(--accent),#0ea5a4);color:#022}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:16px}
+    .list{max-height:340px;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+    .row{display:flex;gap:8px;align-items:center}
+    .item{background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;display:flex;justify-content:space-between}
+    .small{font-size:13px}
+    canvas{width:100%;height:200px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border-radius:8px}
+    footer{margin-top:12px;color:var(--muted);font-size:12px}
+    .topbar{display:flex;gap:8px;align-items:center}
+    .right{display:flex;gap:8px;align-items:center}
+    .danger{background:transparent;color:#ffb4b4;border:1px solid rgba(255,80,80,0.12)}
+    @media(max-width:880px){.grid{grid-template-columns:1fr;}.auth{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <h1>Controle Financeiro — App (HTML/CSS/JS)</h1>
+      <div class="right muted">Salve no GitHub Pages — cliente só (não seguro para dados sensíveis)</div>
+    </header>
+
+    <section id="authView" class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <strong>Entre ou crie uma conta</strong>
+        <div class="muted">Login local (localStorage) — para testar no GitHub Pages</div>
+      </div>
+      <div class="auth">
+        <div>
+          <label>Nome de usuário</label>
+          <input id="username" placeholder="seuusuario" autocomplete="username">
+        </div>
+        <div>
+          <label>Senha</label>
+          <input id="password" type="password" placeholder="********" autocomplete="current-password">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button id="btnLogin" class="btn btn-primary">Entrar</button>
+        <button id="btnRegister" class="btn">Criar conta</button>
+        <button id="btnReset" class="btn danger">Apagar conta</button>
+      </div>
+      <p class="muted" style="margin-top:10px">Observação: este app guarda dados no navegador. Não é recomendável para informações sensíveis.</p>
+    </section>
+
+    <section id="appView" class="card" style="display:none;margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <strong id="welcome"></strong>
+          <div class="muted small" id="userHint"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="selectMonth"></select>
+          <select id="selectYear"></select>
+          <button id="btnPrev" class="btn">◀</button>
+          <button id="btnNext" class="btn">▶</button>
+          <button id="btnLogout" class="btn">Sair</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <div class="card" style="padding:12px;margin-bottom:10px">
+            <strong>Custos mensais fixos</strong>
+            <div class="row" style="margin-top:8px">
+              <input id="costLabel" placeholder="Nome do custo (ex: Aluguel)">
+              <input id="costValue" placeholder="Valor" type="number" step="0.01">
+              <button id="addCost" class="btn btn-primary">Adicionar</button>
+            </div>
+            <div class="list" id="costList" style="margin-top:10px"></div>
+          </div>
+
+          <div class="card" style="padding:12px;margin-top:8px">
+            <strong>Proventos diários</strong>
+            <div class="row" style="margin-top:8px">
+              <input id="dayValue" placeholder="Valor do dia" type="number" step="0.01">
+              <select id="daySelect"></select>
+              <button id="addDay" class="btn btn-primary">Salvar</button>
+            </div>
+            <div class="muted small" style="margin-top:8px">Escolha o dia do mês (o app ajusta automaticamente o número de dias do mês selecionado).</div>
+            <div class="list" id="daysList" style="margin-top:10px"></div>
+          </div>
+
+        </div>
+
+        <div>
+          <div class="card" style="padding:12px;margin-bottom:10px">
+            <strong>Resumo do mês</strong>
+            <div style="margin-top:8px" class="small">
+              <div>Receita total: <span id="totalIn">0</span></div>
+              <div>Despesas fixas: <span id="totalCost">0</span></div>
+              <div>Saldo: <strong id="balance">0</strong></div>
+            </div>
+            <canvas id="chart" width="600" height="240" style="margin-top:10px"></canvas>
+          </div>
+
+          <div class="card" style="padding:12px;margin-top:8px">
+            <strong>Exportar / Importar</strong>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button id="btnExport" class="btn">Exportar JSON</button>
+              <input id="importFile" type="file" accept="application/json">
+            </div>
+            <div class="muted small" style="margin-top:8px">Exporta os dados do usuário para backup ou copiar para outro navegador.</div>
+          </div>
+        </div>
+      </div>
+
+      <footer>Feito para uso local. Para publicar: envie este arquivo para um repositório GitHub e ative o GitHub Pages (branch main). Lembre-se: autenticação é apenas local.</footer>
+    </section>
+
+  </div>
+
+<script>
+// ======= Utilitários ======
+const $ = id => document.getElementById(id);
+function fmt(v){return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+async function hashText(text){
+  const enc = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', enc);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ======= Gerenciamento de usuários (localStorage) ======
+const DB_KEY = 'finance_app_users_v1';
+function loadDB(){try{return JSON.parse(localStorage.getItem(DB_KEY)||'{}')}catch(e){return {}}}
+function saveDB(db){localStorage.setItem(DB_KEY,JSON.stringify(db))}
+
+async function register(username,password){
+  const db = loadDB();
+  if(db[username]) throw new Error('Usuário já existe');
+  const passHash = await hashText(password);
+  db[username] = {pass:passHash,data:{}}; // data: { '2025-10': { costs:[], days:{} } }
+  saveDB(db);
+}
+
+async function login(username,password){
+  const db = loadDB();
+  const u = db[username];
+  if(!u) throw new Error('Usuário não encontrado');
+  const passHash = await hashText(password);
+  if(u.pass !== passHash) throw new Error('Senha incorreta');
+  sessionStorage.setItem('finance_app_user',username);
+  return true;
+}
+
+function deleteAccount(username){
+  const db = loadDB();
+  delete db[username];
+  saveDB(db);
+  sessionStorage.removeItem('finance_app_user');
+}
+
+function currentUser(){return sessionStorage.getItem('finance_app_user')}
+
+// ======= Helpers de data ======
+function monthKey(y,m){return `${y}-${String(m).padStart(2,'0')}`}
+function daysInMonth(y,m){return new Date(y,m,0).getDate()} // m is 1-based
+
+// ======= Estado da UI ======
+const selectMonth = $('selectMonth');
+const selectYear = $('selectYear');
+const daySelect = $('daySelect');
+const costList = $('costList');
+const daysList = $('daysList');
+const totalInEl = $('totalIn');
+const totalCostEl = $('totalCost');
+const balanceEl = $('balance');
+const welcome = $('welcome');
+
+let currentYear, currentMonth; // numbers
+
+// ======= Inicialização de selects ======
+(function initDateSelectors(){
+  const now = new Date();
+  const years = [];
+  for(let y=now.getFullYear()-2;y<=now.getFullYear()+2;y++) years.push(y);
+  years.forEach(y=>{
+    const opt = document.createElement('option'); opt.value = y; opt.textContent = y; selectYear.appendChild(opt);
+  });
+  for(let m=1;m<=12;m++){
+    const opt = document.createElement('option'); opt.value=m; opt.textContent = new Date(0,m-1).toLocaleString('pt-BR',{month:'long'});
+    selectMonth.appendChild(opt);
+  }
+  selectYear.value = now.getFullYear(); selectMonth.value = now.getMonth()+1;
+  currentYear = Number(selectYear.value); currentMonth = Number(selectMonth.value);
+  rebuildDaySelect();
+})();
+
+selectMonth.addEventListener('change',()=>{currentMonth=Number(selectMonth.value);rebuildDaySelect();loadMonth()});
+selectYear.addEventListener('change',()=>{currentYear=Number(selectYear.value);rebuildDaySelect();loadMonth()});
+$('btnPrev').addEventListener('click',()=>{ const d=new Date(currentYear,currentMonth-2); selectYear.value=d.getFullYear(); selectMonth.value=d.getMonth()+1; currentYear=d.getFullYear(); currentMonth=d.getMonth()+1; rebuildDaySelect(); loadMonth();});
+$('btnNext').addEventListener('click',()=>{ const d=new Date(currentYear,currentMonth); selectYear.value=d.getFullYear(); selectMonth.value=d.getMonth()+1; currentYear=d.getFullYear(); currentMonth=d.getMonth()+1; rebuildDaySelect(); loadMonth();});
+
+function rebuildDaySelect(){
+  const dim = daysInMonth(currentYear,currentMonth);
+  daySelect.innerHTML='';
+  for(let d=1;d<=dim;d++){ const o=document.createElement('option'); o.value=d; o.textContent=d; daySelect.appendChild(o);} 
+}
+
+// ======= Conta e navegação ======
+$('btnRegister').addEventListener('click', async ()=>{
+  const u=$('username').value.trim(); const p=$('password').value;
+  if(!u||!p){alert('Preencha usuário e senha'); return}
+  try{ await register(u,p); alert('Conta criada! Pode entrar.')}catch(e){alert(e.message)}
+});
+$('btnLogin').addEventListener('click', async ()=>{ try{ const u=$('username').value.trim(); const p=$('password').value; await login(u,p); showApp(); }catch(e){alert(e.message)} });
+$('btnReset').addEventListener('click', ()=>{ const u=$('username').value.trim(); if(!u) return alert('Informe o usuário'); if(confirm('Apagar conta e dados localmente?')){ deleteAccount(u); alert('Conta apagada'); } });
+$('btnLogout').addEventListener('click', ()=>{ sessionStorage.removeItem('finance_app_user'); location.reload(); });
+
+function showApp(){ const u=currentUser(); if(!u) return; $('authView').style.display='none'; $('appView').style.display='block'; welcome.textContent = `Olá, ${u}`; $('userHint').textContent = `Usuário: ${u} — dados salvos localmente no navegador.`; loadMonth(); }
+
+// ======= Dados do mês ======
+function getUserData(){ const db=loadDB(); const u=currentUser(); return db[u].data = db[u].data || {}, db[u]; }
+
+function getMonthData(key){ const udata = getUserData(); return udata.data[key] = udata.data[key] || {costs:[],days:{}} , udata.data[key]; }
+
+// Custos
+$('addCost').addEventListener('click',()=>{
+  const label=$('costLabel').value.trim(); const val=Number($('costValue').value||0);
+  if(!label||!val) return alert('Preencha nome e valor do custo');
+  const key = monthKey(currentYear,currentMonth);
+  const db=loadDB(); const user=currentUser(); const m = getMonthData(key);
+  m.costs.push({label, value:val});
+  db[user].data[key]=m; saveDB(db); $('costLabel').value=''; $('costValue').value=''; loadMonth();
+});
+
+function removeCost(idx){ const key=monthKey(currentYear,currentMonth); const db=loadDB(); const user=currentUser(); const m=getMonthData(key); m.costs.splice(idx,1); db[user].data[key]=m; saveDB(db); loadMonth(); }
+
+// Dias
+$('addDay').addEventListener('click',()=>{
+  const val=Number($('dayValue').value||0); const day = Number(daySelect.value);
+  if(isNaN(val)) return alert('Valor inválido');
+  const key=monthKey(currentYear,currentMonth); const db=loadDB(); const user=currentUser(); const m=getMonthData(key);
+  m.days[day]=val; db[user].data[key]=m; saveDB(db); $('dayValue').value=''; loadMonth();
+});
+
+function removeDay(d){ const key=monthKey(currentYear,currentMonth); const db=loadDB(); const user=currentUser(); const m=getMonthData(key); delete m.days[d]; db[user].data[key]=m; saveDB(db); loadMonth(); }
+
+// ======= Renderização do mês ======
+function loadMonth(){ const key=monthKey(currentYear,currentMonth); const m = getMonthData(key); renderCosts(m.costs); renderDays(m.days); renderSummary(m); }
+
+function renderCosts(costs){ costList.innerHTML=''; costs.forEach((c,i)=>{
+  const div = document.createElement('div'); div.className='item';
+  div.innerHTML = `<div><strong>${c.label}</strong><div class=muted>${fmt(c.value)}</div></div><div style="display:flex;gap:8px"><button onclick="removeCost(${i})" class="btn">Remover</button></div>`;
+  costList.appendChild(div);
+ }); if(costs.length===0) costList.innerHTML='<div class="muted small">Nenhum custo cadastrado</div>';
+}
+
+function renderDays(days){ daysList.innerHTML=''; const dim = daysInMonth(currentYear,currentMonth);
+  for(let d=1;d<=dim;d++){
+    const val = days[d] || 0; const div=document.createElement('div'); div.className='item';
+    div.innerHTML = `<div>Dia ${d} <div class="muted">${fmt(val)}</div></div><div style="display:flex;gap:8px"><button onclick="removeDay(${d})" class='btn'>Remover</button></div>`;
+    daysList.appendChild(div);
+  }
+}
+
+function renderSummary(m){ const costs = (m.costs||[]).reduce((s,x)=>s+Number(x.value||0),0); const totalIn = Object.values(m.days||{}).reduce((s,x)=>s+Number(x||0),0);
+  totalInEl.textContent = fmt(totalIn); totalCostEl.textContent = fmt(costs); balanceEl.textContent = fmt(totalIn - costs);
+  drawChart(m);
+}
+
+// ======= Gráfico simples ======
+function drawChart(m){ const c = $('chart'); const ctx = c.getContext('2d'); const dim = daysInMonth(currentYear,currentMonth); c.width = c.clientWidth; c.height = 240; ctx.clearRect(0,0,c.width,c.height);
+  const values = []; for(let d=1;d<=dim;d++) values.push(Number((m.days && m.days[d])||0));
+  // axes
+  const padding=30; const w=c.width-2*padding; const h=c.height-2*padding; const max = Math.max(1, ...values);
+  ctx.beginPath(); ctx.moveTo(padding,padding); ctx.lineTo(padding,padding+h); ctx.lineTo(padding+w,padding+h); ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.stroke();
+  // bars
+  const barW = w / dim * 0.8; values.forEach((v,i)=>{
+    const x = padding + i*(w/dim) + (w/dim - barW)/2; const barH = (v/max) * (h-10); const y = padding + h - barH;
+    ctx.fillRect(x,y,barW,barH);
+  });
+}
+
+// ======= Export / Import ======
+$('btnExport').addEventListener('click',()=>{
+  const user = currentUser(); const db = loadDB(); const data = db[user]; const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download = `${user}_finance_backup.json`; a.click(); URL.revokeObjectURL(url);
+});
+$('importFile').addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if(!f) return; const reader=new FileReader(); reader.onload = ()=>{
+    try{ const imported = JSON.parse(reader.result); const db=loadDB(); const user = currentUser(); if(!user) return alert('Faça login antes de importar'); db[user].data = imported.data || imported; saveDB(db); alert('Importado'); loadMonth(); }catch(err){alert('Arquivo inválido')}
+  }; reader.readAsText(f);
+});
+
+// ======= Auto-login se já for sessão ativa ======
+window.addEventListener('load', ()=>{ if(currentUser()){ showApp(); } });
+
+// Expor funções para onclick inline
+window.removeCost = removeCost; window.removeDay = removeDay;
+</script>
+</body>
+</html>
